@@ -1,0 +1,68 @@
+{
+  "mappings": {
+    "_doc": {
+      "properties": {
+        "address": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "good": {
+          "type": "boolean"
+        },
+        "lastSuccess": {
+          "type": "date"
+        },
+        "percent2h": {
+          "type": "float"
+        },
+        "percent8h": {
+          "type": "float"
+        },
+        "percent1d": {
+          "type": "float"
+        },
+        "percent7d": {
+          "type": "float"
+        },
+        "percent30d": {
+          "type": "float"
+        },
+        "blocks": {
+          "type": "long"
+        },
+        "svcs": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "version": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "userAgent": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,8 @@
+debug: true
+
+elasticSearch:
+  urls: http://134.209.29.25:9200
+  sniff: false
+  healthCheck: true
+
+seedFile: ./dnsseed.dump
