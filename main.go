@@ -33,6 +33,7 @@ func waitUntilFind(filename string) error {
 }
 
 func main() {
+	log.Println("Starting node indexer")
 	filename := config.Get().SeedFile
 
 	err := waitUntilFind(filename)
@@ -116,7 +117,10 @@ func parse() {
 
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
-		words := strings.Fields(scanner.Text())
+		line := scanner.Text()
+		log.Printf("Working on line: %s\n", line)
+
+		words := strings.Fields(line)
 		if words[0] != "#" && len(words) == 12 {
 			log.Printf("Loading Node: %s", words[0])
 
@@ -190,6 +194,11 @@ func parse() {
 		log.Fatal(err)
 	}
 
+	if len(nodes) == 0 {
+		log.Println("Didnt find any nodes...")
+		return
+	}
+
 	ctx := context.Background()
 	deleteIndex, _ := client.DeleteIndex("mainnet.nodes").Do(ctx)
 	if deleteIndex != nil && deleteIndex.Acknowledged {
@@ -197,7 +206,7 @@ func parse() {
 	}
 	createIndex, err := client.CreateIndex("mainnet.nodes").BodyString(string(mapping)).Do(ctx)
 	if !createIndex.Acknowledged {
-		log.Fatal("Failed to create temp index")
+		log.Fatal("FATAL", "Failed to create temp index")
 	}
 
 	bulkRequest := client.Bulk()
@@ -208,10 +217,10 @@ func parse() {
 	}
 	bulkResponse, err := bulkRequest.Do(ctx)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("LOG: ", err)
 	}
 	if bulkResponse.Errors {
-		log.Fatal("Error performing bulk insert")
+		log.Fatal("FATAL", "Error performing bulk insert")
 	}
 }
 
