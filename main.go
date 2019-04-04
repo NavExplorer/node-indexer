@@ -105,6 +105,7 @@ func main() {
 }
 
 func parse() {
+	log.Printf("Parsing file: %s", config.Get().SeedFile)
 	file, err := os.Open(config.Get().SeedFile)
 	if err != nil {
 		log.Fatal(err)
@@ -116,48 +117,50 @@ func parse() {
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
 		words := strings.Fields(scanner.Text())
-		if len(words) == 12 {
+		if words[0] != "#" && len(words) == 12 {
+			log.Printf("Loading Node: %s", words[0])
+
 			var node Node
 			node.Address = words[0]
 			node.Good = words[1] == "1"
 			i, err := strconv.ParseInt(words[2], 10, 64)
 			if err != nil {
-				continue
+				log.Fatal(err)
 			}
 			node.LastSuccess = time.Unix(i, 0)
 
 			percentReg, err := regexp.Compile("[^0-9.]+")
 			if err != nil {
-				continue
+				log.Fatal(err)
 			}
 
 			percent2h, err := strconv.ParseFloat(percentReg.ReplaceAllString(words[3], ""), 64)
 			if err != nil {
-				continue
+				log.Fatal(err)
 			}
 			node.Percent2h = percent2h
 
 			percent8h, err := strconv.ParseFloat(percentReg.ReplaceAllString(words[4], ""), 64)
 			if err != nil {
-				continue
+				log.Fatal(err)
 			}
 			node.Percent8h = percent8h
 
 			percent1d, err := strconv.ParseFloat(percentReg.ReplaceAllString(words[5], ""), 64)
 			if err != nil {
-				continue
+				log.Fatal(err)
 			}
 			node.Percent1d = percent1d
 
 			percent7d, err := strconv.ParseFloat(percentReg.ReplaceAllString(words[6], ""), 64)
 			if err != nil {
-				continue
+				log.Fatal(err)
 			}
 			node.Percent7d = percent7d
 
 			percent30d, err := strconv.ParseFloat(percentReg.ReplaceAllString(words[7], ""), 64)
 			if err != nil {
-				continue
+				log.Fatal(err)
 			}
 			node.Percent30d = percent30d
 
@@ -167,6 +170,8 @@ func parse() {
 			node.UserAgent = strings.Trim(words[11], "\"/")
 
 			nodes = append(nodes, node)
+		} else {
+			log.Printf("Found %d words on line", len(words))
 		}
 	}
 
