@@ -62,6 +62,7 @@ func main() {
 				switch {
 				case event.Op&fsnotify.Write == fsnotify.Write:
 					log.Printf("Write:  %s: %s", event.Op, event.Name)
+					parse()
 				case event.Op&fsnotify.Create == fsnotify.Create:
 					log.Printf("Create: %s: %s", event.Op, event.Name)
 				case event.Op&fsnotify.Rename == fsnotify.Rename:
