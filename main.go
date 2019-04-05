@@ -36,6 +36,9 @@ func main() {
 	log.Println("Starting node indexer")
 	filename := config.Get().SeedFile
 
+	// parse the file on first load
+	parse()
+
 	err := waitUntilFind(filename)
 	if err != nil {
 		log.Fatalln(err)
@@ -109,7 +112,8 @@ func parse() {
 	log.Printf("Parsing file: %s", config.Get().SeedFile)
 	file, err := os.Open(config.Get().SeedFile)
 	if err != nil {
-		log.Fatal(err)
+		log.Println("Failed to locate dump")
+		return
 	}
 	defer file.Close()
 
@@ -177,7 +181,7 @@ func parse() {
 			if err != nil {
 				log.Fatal(err)
 			}
-			node.UserAgentVersion = userAgentVersion.ReplaceAllString(words[11], "")
+			node.UserAgentVersion = userAgentVersion.ReplaceAllString(node.UserAgent, "")
 
 			nodes = append(nodes, node)
 		} else {
