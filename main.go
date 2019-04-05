@@ -173,6 +173,12 @@ func parse() {
 			node.Version = words[10]
 			node.UserAgent = strings.Trim(words[11], "\"/")
 
+			userAgentVersion, err := regexp.Compile("[^0-9.]+")
+			if err != nil {
+				log.Fatal(err)
+			}
+			node.UserAgentVersion = userAgentVersion.ReplaceAllString(words[11], "")
+
 			nodes = append(nodes, node)
 		} else {
 			log.Printf("Found %d words on line", len(words))
@@ -225,16 +231,17 @@ func parse() {
 }
 
 type Node struct {
-	Address     string    `json:"address"`
-	Good        bool      `json:"good"`
-	LastSuccess time.Time `json:"lastSuccess"`
-	Percent2h   float64   `json:"percent2h"`
-	Percent8h   float64   `json:"percent8h"`
-	Percent1d   float64   `json:"percent1d"`
-	Percent7d   float64   `json:"percent7d"`
-	Percent30d  float64   `json:"percent30d"`
-	Blocks      int64     `json:"blocks"`
-	Svcs        string    `json:"svcs"`
-	Version     string    `json:"version"`
-	UserAgent   string    `json:"userAgent"`
+	Address          string    `json:"address"`
+	Good             bool      `json:"good"`
+	LastSuccess      time.Time `json:"lastSuccess"`
+	Percent2h        float64   `json:"percent2h"`
+	Percent8h        float64   `json:"percent8h"`
+	Percent1d        float64   `json:"percent1d"`
+	Percent7d        float64   `json:"percent7d"`
+	Percent30d       float64   `json:"percent30d"`
+	Blocks           int64     `json:"blocks"`
+	Svcs             string    `json:"svcs"`
+	Version          string    `json:"version"`
+	UserAgent        string    `json:"userAgent"`
+	UserAgentVersion string    `json:"userAgentVersion"`
 }
