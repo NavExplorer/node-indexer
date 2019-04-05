@@ -215,7 +215,7 @@ func IndexNodes(nodes []Node) {
 	now := time.Now().UTC().Truncate(time.Second)
 	from := time.Date(now.Year(), now.Month(), now.Day()-1, now.Hour(), now.Minute(), 0, 0, now.Location())
 
-	results, err := client.Search("mainet.nodes").
+	results, err := client.Search("mainnet.nodes").
 		Size(10000).
 		Query(elastic.NewRangeQuery("lastSeen").Gt(from)).
 		Do(ctx)
