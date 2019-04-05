@@ -183,8 +183,6 @@ func parse() {
 			}
 			node.UserAgentVersion = userAgentVersion.ReplaceAllString(node.UserAgent, "")
 
-			node.LastSeen = time.Now()
-
 			nodes = append(nodes, node)
 		} else {
 			log.Printf("Found %d words on line", len(words))
@@ -238,6 +236,7 @@ func IndexNodes(nodes []Node) {
 	bulkRequest := client.Bulk()
 	for _, node := range nodes {
 		var req elastic.BulkableRequest
+		node.LastSeen = now
 
 		if isNodeKnown(node, knownNodes) {
 			log.Printf("LOG: Updating node %s\n", node.Address)
