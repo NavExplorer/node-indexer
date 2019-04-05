@@ -221,8 +221,8 @@ func IndexNodes(nodes []Node) {
 		log.Fatal("FATAL: ", err)
 	}
 	var knownNodes []Node
+	log.Printf("LOG: Found %d known nodes", results.Hits.TotalHits)
 	for _, hit := range results.Hits.Hits {
-		log.Printf("LOG: Found %d known nodes", results.Hits.TotalHits)
 		var knownNode Node
 		err := json.Unmarshal(*hit.Source, &knownNode)
 		if err == nil {
