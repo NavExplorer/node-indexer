@@ -3,11 +3,11 @@ package main
 import (
 	"bufio"
 	"context"
+	"encoding/json"
 	"github.com/NavExplorer/navexplorer-api-go/elasticsearch"
 	"github.com/NavExplorer/node-indexer/config"
 	"github.com/fsnotify/fsnotify"
 	"github.com/olivere/elastic"
-	"io/ioutil"
 	"log"
 	"os"
 	"regexp"
@@ -183,6 +183,8 @@ func parse() {
 			}
 			node.UserAgentVersion = userAgentVersion.ReplaceAllString(node.UserAgent, "")
 
+			node.LastSeen = time.Now()
+
 			nodes = append(nodes, node)
 		} else {
 			log.Printf("Found %d words on line", len(words))
@@ -193,36 +195,57 @@ func parse() {
 		log.Fatal(err)
 	}
 
-	log.Printf("Found %d nodes", len(nodes))
-
-	client, err := elasticsearch.NewClient()
-	if err != nil {
-		log.Fatal(err)
-	}
-	mapping, err := ioutil.ReadFile("node.json")
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	if len(nodes) == 0 {
 		log.Println("Didnt find any nodes...")
 		return
 	}
 
+	log.Printf("Found %d nodes", len(nodes))
+	IndexNodes(nodes)
+}
+
+func IndexNodes(nodes []Node) {
 	ctx := context.Background()
-	deleteIndex, _ := client.DeleteIndex("mainnet.nodes").Do(ctx)
-	if deleteIndex != nil && deleteIndex.Acknowledged {
-		log.Println("Deleted index")
+
+	client, err := elasticsearch.NewClient()
+	if err != nil {
+		log.Fatal(err)
 	}
-	createIndex, err := client.CreateIndex("mainnet.nodes").BodyString(string(mapping)).Do(ctx)
-	if !createIndex.Acknowledged {
-		log.Fatal("FATAL", "Failed to create temp index")
+
+	now := time.Now().UTC().Truncate(time.Second)
+	from := time.Date(now.Year(), now.Month(), now.Day()-1, now.Hour(), now.Minute(), 0, 0, now.Location())
+
+	results, err := client.Search("mainet.nodes").
+		Size(10000).
+		Query(elastic.NewRangeQuery("lastSeen").Gt(from)).
+		Do(ctx)
+	if err != nil {
+		log.Fatal("FATAL: ", err)
+	}
+	var knownNodes []Node
+	for _, hit := range results.Hits.Hits {
+		var knownNode Node
+		err := json.Unmarshal(*hit.Source, &knownNode)
+		if err == nil {
+			knownNodes = append(knownNodes, knownNode)
+		}
+	}
+
+	for _, node := range knownNodes {
+		node.Stale = isNodeNew(node, nodes)
 	}
 
 	bulkRequest := client.Bulk()
-	for i := range nodes {
-		log.Printf("Indexing node %s\n", nodes[i].Address)
-		req := elastic.NewBulkIndexRequest().Index("mainnet.nodes").Type("_doc").Id(nodes[i].Address).Doc(nodes[i])
+	for _, node := range nodes {
+		var req elastic.BulkableRequest
+
+		if isNodeKnown(node, knownNodes) {
+			log.Printf("LOG: Updating node %s\n", node.Address)
+			req = elastic.NewBulkUpdateRequest().Index("mainnet.nodes").Type("_doc").Id(node.Address).Doc(node)
+		} else {
+			log.Printf("LOG: Inserting node %s\n", node.Address)
+			req = elastic.NewBulkIndexRequest().Index("mainnet.nodes").Type("_doc").Id(node.Address).Doc(node)
+		}
 		bulkRequest = bulkRequest.Add(req)
 	}
 	bulkResponse, err := bulkRequest.Do(ctx)
@@ -234,10 +257,53 @@ func parse() {
 	}
 }
 
+func isNodeKnown(node Node, knownNodes []Node) bool {
+	for _, v := range knownNodes {
+		if v.Address == node.Address {
+			return true
+		}
+	}
+
+	return false
+}
+
+func isNodeNew(node Node, newNodes []Node) bool {
+	for _, v := range newNodes {
+		if v.Address == node.Address {
+			return true
+		}
+	}
+
+	return false
+}
+
+//func cleanIndex() {
+//	ctx := context.Background()
+//
+//	client, err := elasticsearch.NewClient()
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//
+//	mapping, err := ioutil.ReadFile("node.json")
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	deleteIndex, _ := client.DeleteIndex("mainnet.nodes").Do(ctx)
+//	if deleteIndex != nil && deleteIndex.Acknowledged {
+//		log.Println("Deleted index")
+//	}
+//	createIndex, err := client.CreateIndex("mainnet.nodes").BodyString(string(mapping)).Do(ctx)
+//	if !createIndex.Acknowledged {
+//		log.Fatal("FATAL", "Failed to create temp index")
+//	}
+//}
+
 type Node struct {
 	Address          string    `json:"address"`
 	Good             bool      `json:"good"`
 	LastSuccess      time.Time `json:"lastSuccess"`
+	LastSeen         time.Time `json:"lastSeen"`
 	Percent2h        float64   `json:"percent2h"`
 	Percent8h        float64   `json:"percent8h"`
 	Percent1d        float64   `json:"percent1d"`
@@ -248,4 +314,5 @@ type Node struct {
 	Version          string    `json:"version"`
 	UserAgent        string    `json:"userAgent"`
 	UserAgentVersion string    `json:"userAgentVersion"`
+	Stale            bool      `json:"stale"`
 }
